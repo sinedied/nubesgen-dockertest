@@ -27,6 +27,11 @@ jobs:
           echo "ARM_CLIENT_ID=$(echo $AZURE_CREDENTIALS | jq -r .clientId)" >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=$(echo $AZURE_CREDENTIALS | jq -r .subscriptionId)" >> $GITHUB_ENV
           echo "ARM_TENANT_ID=$(echo $AZURE_CREDENTIALS | jq -r .tenantId)" >> $GITHUB_ENV
+      - name: Set registry authentication
+        run: |
+          sed -i "s/GITHUB_TOKEN/${GITHUB_TOKEN}/g" terraform/modules/app-service/main.tf
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
       - name: Initialize Terraform
@@ -54,10 +59,11 @@ jobs:
           -var="environment=$ENVIRONMENT"
         working-directory: '${{ github.workspace }}/terraform'
   build:
+#    needs: manage-infrastructure
     runs-on: ubuntu-20.04
     env:
       APPLICATION_NAME: 'demo-docker'
-      CONTAINER_REGISTRY: 'demodocker'
+      CONTAINER_REGISTRY: 'docker.pkg.github.com/sinedied/nubesgen-dockertest/'
     steps:
       - name: Set environment variables
         run: |
@@ -66,23 +72,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Build with Docker
-        run: docker build -t acr${{ env.CONTAINER_REGISTRY }}${{ env.ENVIRONMENT }}001.azurecr.io/${{ env.APPLICATION_NAME }}/${{ env.APPLICATION_NAME }}:${{ github.sha }} .
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - name: Push to Azure Container Registry
-        env:
-          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        run: docker build -t ${{ env.CONTAINER_REGISTRY }}${{ env.APPLICATION_NAME }}:${{ github.sha }} .
+#      - name: Login to Azure
+#        uses: azure/login@v1
+#        with:
+#          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Push to GitHub Container Registry
         run: |
-          az acr login -n acr${{ env.CONTAINER_REGISTRY }}${{ env.ENVIRONMENT }}001.azurecr.io
-          docker push acr${{ env.CONTAINER_REGISTRY }}${{ env.ENVIRONMENT }}001.azurecr.io/${{ env.APPLICATION_NAME }}/${{ env.APPLICATION_NAME }}:${{ github.sha }}
+          echo $GH_TOKEN | docker login https://docker.pkg.github.com -u sinedied --password-stdin
+          docker push ${{ env.CONTAINER_REGISTRY }}${{ env.APPLICATION_NAME }}:${{ github.sha }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Push to Azure Container Registry
+#        env:
+#          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+#        run: |
+#          az acr login -n acr${{ env.CONTAINER_REGISTRY }}${{ env.ENVIRONMENT }}001.azurecr.io
+#          docker push acr${{ env.CONTAINER_REGISTRY }}${{ env.ENVIRONMENT }}001.azurecr.io/${{ env.APPLICATION_NAME }}/${{ env.APPLICATION_NAME }}:${{ github.sha }}
   deploy:
-    needs: build
+    needs: [manage-infrastructure, build]
     runs-on: ubuntu-20.04
     env:
       APPLICATION_NAME: 'demo-docker'
-      CONTAINER_REGISTRY: 'demodocker'
+      CONTAINER_REGISTRY: 'docker.pkg.github.com/sinedied/nubesgen-dockertest/'
     steps:
       - name: Set environment variables
         run: |
@@ -96,4 +108,4 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'app-demo-docker-${{ env.ENVIRONMENT }}-001'
-          images: 'acr${{ env.CONTAINER_REGISTRY }}${{ env.ENVIRONMENT }}001.azurecr.io/${{ env.APPLICATION_NAME }}/${{ env.APPLICATION_NAME }}:${{ github.sha }}'
+          images: '${{ env.CONTAINER_REGISTRY }}${{ env.APPLICATION_NAME }}:${{ github.sha }}'
