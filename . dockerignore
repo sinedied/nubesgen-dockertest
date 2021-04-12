@@ -1,0 +1,6 @@
+.devcontainer
+.github
+terraform
+/*.sh
+node_modules
+npm-debug.log
