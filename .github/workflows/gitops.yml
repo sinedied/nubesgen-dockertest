@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       APPLICATION_NAME: 'demo-docker'
-      CONTAINER_REGISTRY: 'docker.pkg.github.com/sinedied/nubesgen-docker/'
+      CONTAINER_REGISTRY: 'docker.pkg.github.com/sinedied/nubesgen-dockertest/'
     steps:
       - name: Set environment variables
         run: |
@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       APPLICATION_NAME: 'demo-docker'
-      CONTAINER_REGISTRY: 'docker.pkg.github.com/sinedied/nubesgen-docker/'
+      CONTAINER_REGISTRY: 'docker.pkg.github.com/sinedied/nubesgen-dockertest/'
     steps:
       - name: Set environment variables
         run: |
