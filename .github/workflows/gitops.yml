@@ -54,7 +54,6 @@ jobs:
           -var="environment=$ENVIRONMENT"
         working-directory: '${{ github.workspace }}/terraform'
   build:
-    needs: manage-infrastructure
     runs-on: ubuntu-20.04
     env:
       APPLICATION_NAME: 'demo-docker'
