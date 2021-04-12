@@ -1,21 +1,3 @@
-
-locals {
-  // An Azure Container Registry name cannot contain hyphens, and is limited to 50 characters long
-  azure-container-registry-name = substr(replace(var.application_name, "-", ""), 0, 46)
-}
-
-resource "azurerm_container_registry" "container-registry" {
-  name                     = "acr${local.azure-container-registry-name}001"
-  resource_group_name      = var.resource_group
-  location                 = var.location
-  admin_enabled            = true
-  sku                      = "Basic"
-
-  tags = {
-    "environment" = var.environment
-  }
-}
-
 # This creates the plan that the service use
 resource "azurerm_app_service_plan" "application" {
   name                = "plan-${var.application_name}-001"
@@ -48,7 +30,7 @@ resource "azurerm_app_service" "application" {
   }
 
   site_config {
-    linux_fx_version          = "DOCKER|${azurerm_container_registry.container-registry.name}.azurecr.io/${var.application_name}/${var.application_name}:latest"
+    linux_fx_version          = "DOCKER|docker.pkg.github.com/sinedied/nubesgen-dockertest/${var.application_name}:latest"
     always_on                 = false
     use_32_bit_worker_process = true
     ftps_state                = "FtpsOnly"
@@ -56,9 +38,9 @@ resource "azurerm_app_service" "application" {
 
   app_settings = {
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
-    "DOCKER_REGISTRY_SERVER_URL"          = "https://${azurerm_container_registry.container-registry.name}.azurecr.io"
-    "DOCKER_REGISTRY_SERVER_USERNAME"     = azurerm_container_registry.container-registry.admin_username
-    "DOCKER_REGISTRY_SERVER_PASSWORD"     = azurerm_container_registry.container-registry.admin_password
+    "DOCKER_REGISTRY_SERVER_URL"          = "https://docker.pkg.github.com"
+    "DOCKER_REGISTRY_SERVER_USERNAME"     = "sinedied"
+    "DOCKER_REGISTRY_SERVER_PASSWORD"     = "GITHUB_TOKEN"
     "WEBSITES_PORT"                       = "8080"
 
     # These are app specific environment variables
